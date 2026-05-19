@@ -1,0 +1,46 @@
+﻿<Window x:Class="MyAgent.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="MyAgent"
+        Height="800" Width="900"
+        WindowStartupLocation="CenterScreen"
+        Background="#0f172a">
+    <Grid>
+        <wv2:WebView2 x:Name="WebView" Visibility="Collapsed" />
+        <Border x:Name="Loading" Background="#0f172a">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="MyAgent"
+                           Foreground="#e5e7eb"
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center" />
+                <TextBlock x:Name="LoadingStatus"
+                           Text="Starting local backend…"
+                           Foreground="#94a3b8"
+                           FontSize="13"
+                           Margin="0,12,0,0"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+        <Border x:Name="ErrorPanel"
+                Background="#0f172a"
+                Visibility="Collapsed"
+                Padding="32">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="600">
+                <TextBlock Text="Couldn't start MyAgent"
+                           Foreground="#fca5a5"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center" />
+                <TextBlock x:Name="ErrorText"
+                           Foreground="#e5e7eb"
+                           FontSize="13"
+                           TextWrapping="Wrap"
+                           Margin="0,16,0,0"
+                           HorizontalAlignment="Stretch"
+                           TextAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

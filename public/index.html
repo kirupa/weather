@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MyAgent Chat</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --border: #1f2937;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --user: #2563eb;
+        --bot: #1f2937;
+        --accent: #3b82f6;
+        --danger: #ef4444;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      body {
+        display: flex;
+        justify-content: center;
+        padding: 16px;
+      }
+      .app {
+        width: 100%;
+        max-width: 720px;
+        height: calc(100vh - 32px);
+        display: flex;
+        flex-direction: column;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      header h1 {
+        font-size: 16px;
+        margin: 0;
+        font-weight: 600;
+      }
+      header .meta {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      header button {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      header button:hover { color: var(--text); border-color: var(--accent); }
+      #messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .msg {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 14px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      .msg.user {
+        align-self: flex-end;
+        background: var(--user);
+        color: white;
+        border-bottom-right-radius: 4px;
+      }
+      .msg.assistant {
+        align-self: flex-start;
+        background: var(--bot);
+        color: var(--text);
+        border-bottom-left-radius: 4px;
+      }
+      .msg.error {
+        align-self: flex-start;
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.35);
+      }
+      .turn-assistant {
+        align-self: flex-start;
+        max-width: 80%;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .turn-assistant .msg.assistant { max-width: 100%; }
+      .tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 0 4px;
+      }
+      .tool-chip {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.18);
+        color: #93c5fd;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .tool-chip.error {
+        background: rgba(239, 68, 68, 0.15);
+        color: #fca5a5;
+        border-color: rgba(239, 68, 68, 0.4);
+      }
+      .typing {
+        align-self: flex-start;
+        color: var(--muted);
+        font-size: 13px;
+        font-style: italic;
+      }
+      form {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        border-top: 1px solid var(--border);
+        background: var(--panel);
+      }
+      #input {
+        flex: 1;
+        resize: none;
+        min-height: 42px;
+        max-height: 160px;
+        padding: 10px 12px;
+        font: inherit;
+        color: var(--text);
+        background: #0b1220;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        outline: none;
+      }
+      #input:focus { border-color: var(--accent); }
+      #send {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 0 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      #send:disabled { opacity: 0.5; cursor: not-allowed; }
+      .empty {
+        color: var(--muted);
+        text-align: center;
+        margin-top: 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div>
+          <h1>MyAgent</h1>
+          <div class="meta">Powered by OpenAI</div>
+        </div>
+        <button id="reset" type="button">Reset</button>
+      </header>
+      <div id="messages"><div class="empty">Start the conversation…</div></div>
+      <form id="form">
+        <textarea id="input" placeholder="Type a message (Enter to send, Shift+Enter for newline)" autofocus></textarea>
+        <button id="send" type="submit">Send</button>
+      </form>
+    </div>
+
+    <script>
+      const messagesEl = document.getElementById("messages");
+      const form = document.getElementById("form");
+      const input = document.getElementById("input");
+      const sendBtn = document.getElementById("send");
+      const resetBtn = document.getElementById("reset");
+
+      function escapeHTML(s) {
+        return s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function renderMessage(m) {
+        const bubble = `<div class="msg ${m.role}">${escapeHTML(m.content)}</div>`;
+        if (m.role === "assistant" && Array.isArray(m.tools) && m.tools.length) {
+          const chips = m.tools
+            .map((t) => {
+              const cls = t.ok ? "tool-chip" : "tool-chip error";
+              const suffix = t.ok ? "" : " ⚠";
+              return `<span class="${cls}" title="${t.ok ? "Tool call succeeded" : "Tool call failed"}">🔧 ${escapeHTML(t.name)}${suffix}</span>`;
+            })
+            .join("");
+          return `<div class="turn-assistant">${bubble}<div class="tools">${chips}</div></div>`;
+        }
+        return bubble;
+      }
+
+      function renderMessages(messages) {
+        if (!messages || messages.length === 0) {
+          messagesEl.innerHTML = '<div class="empty">Start the conversation…</div>';
+          return;
+        }
+        messagesEl.innerHTML = messages.map(renderMessage).join("");
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function showTyping() {
+        const node = document.createElement("div");
+        node.className = "typing";
+        node.id = "typing";
+        node.textContent = "MyAgent is typing…";
+        messagesEl.appendChild(node);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function hideTyping() {
+        const node = document.getElementById("typing");
+        if (node) node.remove();
+      }
+
+      function appendError(text) {
+        const node = document.createElement("div");
+        node.className = "msg error";
+        node.textContent = text;
+        messagesEl.appendChild(node);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      async function loadMessages() {
+        try {
+          const res = await fetch("/messages");
+          const data = await res.json();
+          renderMessages(data.messages);
+        } catch (err) {
+          appendError("Failed to load messages: " + err.message);
+        }
+      }
+
+      async function sendMessage(text) {
+        sendBtn.disabled = true;
+        input.disabled = true;
+        showTyping();
+        try {
+          const res = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text }),
+          });
+          hideTyping();
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            appendError("Error: " + (data.error || res.statusText));
+            return;
+          }
+          const data = await res.json();
+          renderMessages(data.messages);
+        } catch (err) {
+          hideTyping();
+          appendError("Network error: " + err.message);
+        } finally {
+          sendBtn.disabled = false;
+          input.disabled = false;
+          input.focus();
+        }
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        input.style.height = "auto";
+        sendMessage(text);
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          form.requestSubmit();
+        }
+      });
+
+      input.addEventListener("input", () => {
+        input.style.height = "auto";
+        input.style.height = Math.min(input.scrollHeight, 160) + "px";
+      });
+
+      resetBtn.addEventListener("click", async () => {
+        if (!confirm("Clear the conversation?")) return;
+        try {
+          await fetch("/reset", { method: "POST" });
+          renderMessages([]);
+        } catch (err) {
+          appendError("Reset failed: " + err.message);
+        }
+      });
+
+      loadMessages();
+    </script>
+  </body>
+</html>

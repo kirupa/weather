@@ -1,0 +1,19 @@
+{
+  "name": "myagent",
+  "version": "1.0.0",
+  "description": "A simple back-and-forth chatbot powered by the OpenAI API.",
+  "type": "module",
+  "main": "chat.js",
+  "scripts": {
+    "start": "node chat.js",
+    "web": "node server.js",
+    "mcp": "node mcp-weather-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "openai": "^4.67.3",
+    "zod": "^3.25.76"
+  }
+}
