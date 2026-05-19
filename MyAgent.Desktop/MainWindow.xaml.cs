@@ -5,13 +5,21 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
 
 namespace MyAgent.Desktop;
 
 public partial class MainWindow : Window
 {
+    private const int DWMWA_BORDER_COLOR = 34;
+    private const int DWMWA_CAPTION_COLOR = 35;
+    private const int DWMWA_TEXT_COLOR = 36;
+    private const int BLACK_COLORREF = 0x000000;
+    private const int WHITE_COLORREF = 0xFFFFFF;
+
     private Process? _nodeProcess;
     private ChildProcessJob? _job;
     private int _port;
@@ -19,9 +27,30 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
         Closing += OnClosing;
     }
+
+    private void OnSourceInitialized(object? sender, EventArgs e)
+    {
+        TryApplyBlackTitleBar();
+    }
+
+    private void TryApplyBlackTitleBar()
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero) return;
+
+        var black = BLACK_COLORREF;
+        var white = WHITE_COLORREF;
+        _ = DwmSetWindowAttribute(handle, DWMWA_CAPTION_COLOR, ref black, sizeof(int));
+        _ = DwmSetWindowAttribute(handle, DWMWA_BORDER_COLOR, ref black, sizeof(int));
+        _ = DwmSetWindowAttribute(handle, DWMWA_TEXT_COLOR, ref white, sizeof(int));
+    }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
