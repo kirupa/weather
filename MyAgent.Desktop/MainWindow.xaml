@@ -6,10 +6,11 @@
         Icon="robot.png"
         Height="800" Width="900"
         WindowStartupLocation="CenterScreen"
-        Background="#0f172a">
+        FontFamily="Cascadia Mono, Consolas, Courier New"
+        Background="#1f1f1f">
     <Grid>
         <wv2:WebView2 x:Name="WebView" Visibility="Collapsed" />
-        <Border x:Name="Loading" Background="#0f172a">
+        <Border x:Name="Loading" Background="#1f1f1f">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock Text="MyAgent"
                            Foreground="#e5e7eb"
@@ -25,7 +26,7 @@
             </StackPanel>
         </Border>
         <Border x:Name="ErrorPanel"
-                Background="#0f172a"
+            Background="#1f1f1f"
                 Visibility="Collapsed"
                 Padding="32">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="600">

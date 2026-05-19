@@ -6,13 +6,13 @@
     <title>MyAgent Chat</title>
     <style>
       :root {
-        --bg: #0f172a;
-        --panel: #111827;
-        --border: #1f2937;
+        --bg: #1f1f1f;
+        --panel: #242424;
+        --border: #3a3a3a;
         --text: #e5e7eb;
-        --muted: #94a3b8;
+        --muted: #9ca3af;
         --user: #2563eb;
-        --bot: #1f2937;
+        --bot: #2d2d2d;
         --accent: #3b82f6;
         --danger: #ef4444;
       }
@@ -20,7 +20,7 @@
       html, body {
         margin: 0;
         height: 100%;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
         background: var(--bg);
         color: var(--text);
       }
@@ -121,7 +121,7 @@
         background: rgba(59, 130, 246, 0.18);
         color: #93c5fd;
         border: 1px solid rgba(59, 130, 246, 0.4);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: inherit;
       }
       .tool-chip.error {
         background: rgba(239, 68, 68, 0.15);
@@ -133,6 +133,22 @@
         color: var(--muted);
         font-size: 13px;
         font-style: italic;
+      }
+      .thinking-dots {
+        display: inline-block;
+        overflow: hidden;
+        vertical-align: bottom;
+      }
+      .thinking-dots::after {
+        content: "...";
+        display: inline-block;
+        width: 1ch;
+        animation: thinkingDots 1s infinite;
+      }
+      @keyframes thinkingDots {
+        0% { width: 1ch; }
+        33% { width: 2ch; }
+        66%, 100% { width: 3ch; }
       }
       form {
         display: flex;
@@ -149,7 +165,7 @@
         padding: 10px 12px;
         font: inherit;
         color: var(--text);
-        background: #0b1220;
+        background: #1a1a1a;
         border: 1px solid var(--border);
         border-radius: 8px;
         outline: none;
@@ -232,7 +248,7 @@
         const node = document.createElement("div");
         node.className = "typing";
         node.id = "typing";
-        node.textContent = "MyAgent is typing…";
+        node.innerHTML = 'Agent is thinking<span class="thinking-dots" aria-hidden="true"></span>';
         messagesEl.appendChild(node);
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
@@ -250,6 +266,16 @@
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
 
+      function appendUserMessage(text) {
+        const empty = messagesEl.querySelector(".empty");
+        if (empty) empty.remove();
+        const node = document.createElement("div");
+        node.className = "msg user";
+        node.textContent = text;
+        messagesEl.appendChild(node);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
       async function loadMessages() {
         try {
           const res = await fetch("/messages");
@@ -261,6 +287,7 @@
       }
 
       async function sendMessage(text) {
+        appendUserMessage(text);
         sendBtn.disabled = true;
         input.disabled = true;
         showTyping();
