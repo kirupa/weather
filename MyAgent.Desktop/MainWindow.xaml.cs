@@ -14,6 +14,18 @@ namespace MyAgent.Desktop;
 
 public partial class MainWindow : Window
 {
+    private void ResetButton_Click(object sender, RoutedEventArgs e)
+    {
+        // TODO: Implement reset logic if needed
+    }
+
+    private void ReloadButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (WebView?.CoreWebView2 != null)
+        {
+            WebView.CoreWebView2.Reload();
+        }
+    }
     private const int DWMWA_BORDER_COLOR = 34;
     private const int DWMWA_CAPTION_COLOR = 35;
     private const int DWMWA_TEXT_COLOR = 36;
@@ -31,6 +43,8 @@ public partial class MainWindow : Window
         Loaded += OnLoaded;
         Closing += OnClosing;
     }
+    
+
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {

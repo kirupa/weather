@@ -103,6 +103,7 @@ async function handleChat(userText) {
   messages.push({ role: "user", content: userText });
 
   const toolsUsedThisTurn = [];
+  const desktopFileNotes = [];
 
   try {
     for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
@@ -125,10 +126,18 @@ async function handleChat(userText) {
 
       const toolCalls = msg.tool_calls || [];
       if (toolCalls.length === 0) {
+        let finalContent = msg.content ?? "";
+        if (desktopFileNotes.length) {
+          const suffix = desktopFileNotes.join("\n");
+          if (!finalContent.includes("Desktop file written:") && !finalContent.includes("Desktop file write failed:")) {
+            finalContent = `${finalContent}${finalContent ? "\n\n" : ""}${suffix}`;
+          }
+        }
+        assistantMsg.content = finalContent;
         if (toolsUsedThisTurn.length) {
           assistantToolMeta.set(assistantMsg, toolsUsedThisTurn);
         }
-        return msg.content ?? "";
+        return finalContent;
       }
 
       for (const tc of toolCalls) {
@@ -159,6 +168,11 @@ async function handleChat(userText) {
         }
 
         toolsUsedThisTurn.push({ name: name || "(unknown)", ok });
+        for (const line of String(toolText).split(/\r?\n/)) {
+          if (line.startsWith("Desktop file written:") || line.startsWith("Desktop file write failed:")) {
+            desktopFileNotes.push(line);
+          }
+        }
         messages.push({
           role: "tool",
           tool_call_id: tc.id,

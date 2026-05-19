@@ -2,12 +2,80 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
+
 // IMPORTANT: never write to stdout outside the transport — that would corrupt
 // the JSON-RPC framing. Use stderr for logs.
 const log = (...args) => console.error("[weather-mcp]", ...args);
 
 const FETCH_TIMEOUT_MS = 20_000;
 const FETCH_RETRIES = 1;
+
+function resolveDesktopDir() {
+  const candidates = [
+    process.env.ONEDRIVE && path.join(process.env.ONEDRIVE, "Desktop"),
+    process.env.OneDriveCommercial && path.join(process.env.OneDriveCommercial, "Desktop"),
+    process.env.OneDriveConsumer && path.join(process.env.OneDriveConsumer, "Desktop"),
+    process.env.USERPROFILE && path.join(process.env.USERPROFILE, "Desktop"),
+    process.env.HOME && path.join(process.env.HOME, "Desktop"),
+    path.join(os.homedir(), "Desktop"),
+  ].filter(Boolean);
+
+  // Windows with redirected Desktop often stores it under
+  // C:\Users\<user>\OneDrive*\Desktop even when Desktop env vars are absent.
+  const userProfile = process.env.USERPROFILE || os.homedir();
+  if (process.platform === "win32" && userProfile) {
+    try {
+      const entries = fs.readdirSync(userProfile, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        if (!entry.name.toLowerCase().startsWith("onedrive")) continue;
+        candidates.push(path.join(userProfile, entry.name, "Desktop"));
+      }
+    } catch {
+      // Ignore scan errors and continue fallbacks.
+    }
+
+    // As a final fallback, ask Windows for the Desktop known folder path.
+    for (const shell of ["powershell", "pwsh"]) {
+      try {
+        const desktopFromShell = execFileSync(
+          shell,
+          ["-NoProfile", "-Command", "[Environment]::GetFolderPath('Desktop')"],
+          { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+        ).trim();
+        if (desktopFromShell) candidates.push(desktopFromShell);
+      } catch {
+        // Ignore if shell isn't available.
+      }
+    }
+  }
+
+  for (const dir of candidates) {
+    try {
+      if (fs.existsSync(dir)) return dir;
+    } catch {
+      // Ignore invalid candidate and continue.
+    }
+  }
+
+  return null;
+}
+
+function writeRandomDesktopFile(prefix, bodyText) {
+  const desktopDir = resolveDesktopDir();
+  if (!desktopDir) {
+    return { filePath: null, error: "Could not resolve a Desktop directory." };
+  }
+
+  const randomName = `${prefix}_${Math.random().toString(36).slice(2, 10)}.txt`;
+  const filePath = path.join(desktopDir, randomName);
+  fs.writeFileSync(filePath, bodyText, "utf8");
+  return { filePath, error: null };
+}
 
 async function fetchJson(url, { timeoutMs = FETCH_TIMEOUT_MS, retries = FETCH_RETRIES } = {}) {
   let lastErr;
@@ -171,12 +239,29 @@ server.registerTool(
     },
   },
   async ({ location }) => {
+    let fileWriteNote = "Desktop file write failed: unknown reason.";
+    try {
+      const writeResult = writeRandomDesktopFile(
+        "weather",
+        `Weather tool called at ${new Date().toISOString()}`,
+      );
+      if (writeResult.filePath) {
+        fileWriteNote = `Desktop file written: ${writeResult.filePath}`;
+        log(fileWriteNote);
+      } else {
+        fileWriteNote = `Desktop file write failed: ${writeResult.error}`;
+        log(fileWriteNote);
+      }
+    } catch (err) {
+      fileWriteNote = `Desktop file write failed: ${err.message}`;
+      log(fileWriteNote);
+    }
     try {
       const text = await getCurrentWeather(location);
-      return textResult(text);
+      return textResult(`${text}\n\n${fileWriteNote}`);
     } catch (err) {
       log("get_current_weather error:", err.message);
-      return textResult(`Error fetching current weather: ${err.message}`, true);
+      return textResult(`Error fetching current weather: ${err.message}\n\n${fileWriteNote}`, true);
     }
   },
 );
@@ -201,12 +286,29 @@ server.registerTool(
     },
   },
   async ({ location, days }) => {
+    let fileWriteNote = "Desktop file write failed: unknown reason.";
+    try {
+      const writeResult = writeRandomDesktopFile(
+        "forecast",
+        `Forecast tool called at ${new Date().toISOString()}`,
+      );
+      if (writeResult.filePath) {
+        fileWriteNote = `Desktop file written: ${writeResult.filePath}`;
+        log(fileWriteNote);
+      } else {
+        fileWriteNote = `Desktop file write failed: ${writeResult.error}`;
+        log(fileWriteNote);
+      }
+    } catch (err) {
+      fileWriteNote = `Desktop file write failed: ${err.message}`;
+      log(fileWriteNote);
+    }
     try {
       const text = await getForecast(location, days ?? 3);
-      return textResult(text);
+      return textResult(`${text}\n\n${fileWriteNote}`);
     } catch (err) {
       log("get_forecast error:", err.message);
-      return textResult(`Error fetching forecast: ${err.message}`, true);
+      return textResult(`Error fetching forecast: ${err.message}\n\n${fileWriteNote}`, true);
     }
   },
 );

@@ -44,5 +44,9 @@
                            TextAlignment="Center" />
             </StackPanel>
         </Border>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,16" >
+            <Button x:Name="ResetButton" Content="Reset" Margin="0,0,8,0" Padding="16,6" Click="ResetButton_Click" />
+            <Button x:Name="ReloadButton" Content="Reload" Padding="16,6" Click="ReloadButton_Click" />
+        </StackPanel>
     </Grid>
 </Window>
